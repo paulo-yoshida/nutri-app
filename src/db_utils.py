@@ -19,12 +19,12 @@ def get_patient_list():
     return patients
     
 
-def add_patient(name, birth_date, contact, medical_history):
+def add_patient(name, birth_date, sex, contact, medical_history):
     """Adiciona um novo paciente ao banco de dados."""
     conn = get_db_connection()
     conn.execute(
-        "INSERT INTO patients (name, birth_date, contact, medical_history) VALUES (?, ?, ?, ?)",
-        (name, birth_date, contact, medical_history)
+        "INSERT INTO patients (name, birth_date, sex, contact, medical_history) VALUES (?, ?, ?, ?, ?)",
+        (name, birth_date, sex, contact, medical_history)
     )
     conn.commit()
     conn.close()
@@ -36,16 +36,16 @@ def get_patient_details(patient_id):
     conn.close()
     return patient
 
-def update_patient(patient_id, name, birth_date, contact, medical_history):
+def update_patient(patient_id, name, birth_date, sex, contact, medical_history):
     """Atualiza as informações de um paciente existente."""
     conn = get_db_connection()
     conn.execute(
         """
         UPDATE patients
-        SET name = ?, birth_date = ?, contact = ?, medical_history = ?
+        SET name = ?, birth_date = ?, sex = ?, contact = ?, medical_history = ?
         WHERE id = ?
         """,
-        (name, birth_date, contact, medical_history, patient_id)
+        (name, birth_date, sex, contact, medical_history, patient_id)
     )
     conn.commit()
     conn.close()

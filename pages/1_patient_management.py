@@ -23,13 +23,14 @@ if selected_patient_name == "Cadastrar Novo Paciente":
     with st.form("new_patient_form", clear_on_submit=True):
         name = st.text_input("Nome Completo", key="new_name")
         birth_date = st.date_input("Data de Nascimento", min_value=datetime(1920, 1, 1), key="new_bdate", format="DD/MM/YYYY")
+        sex = st.selectbox("Sexo", options=["Masculino", "Feminino"], key="new_sex")
         contact = st.text_input("Contato (Telefone/Email)", key="new_contact")
         medical_history = st.text_area("Histórico Clínico (patologias, alergias, objetivos...)", key="new_history")
         
         submitted = st.form_submit_button("Salvar Paciente")
         if submitted:
             if name:  # Validação simples para garantir que o nome não está vazio
-                db_utils.add_patient(name, birth_date.strftime("%Y-%m-%d"), contact, medical_history)
+                db_utils.add_patient(name, birth_date.strftime("%Y-%m-%d"), sex.lower(), contact, medical_history)
                 st.success(f"Paciente '{name}' cadastrado com sucesso!")
                 st.rerun() # Recarrega a página para atualizar a lista
             else:
@@ -46,6 +47,7 @@ else: # Se um paciente existente foi selecionado
                 birth_date_obj = datetime.strptime(patient_details['birth_date'], '%Y-%m-%d').date()
                 name = st.text_input("Nome Completo", value=patient_details['name'])
                 birth_date = st.date_input("Data de Nascimento", value=birth_date_obj)
+                sex = st.selectbox("Sexo", options=["Masculino", "Feminino"], index=0 if patient_details['sex'] == 'masculino' else 1)
                 contact = st.text_input("Contato (Telefone/Email)", value=patient_details['contact'])
                 medical_history = st.text_area("Histórico Clínico", value=patient_details['medical_history'], height=150)
 
@@ -56,7 +58,7 @@ else: # Se um paciente existente foi selecionado
                     delete_button = st.form_submit_button("❌ Excluir Paciente")
 
                 if update_button:
-                    db_utils.update_patient(patient_id, name, birth_date.strftime("%Y-%m-%d"), contact, medical_history)
+                    db_utils.update_patient(patient_id, name, birth_date.strftime("%Y-%m-%d"), sex.lower(), contact, medical_history)
                     st.success(f"Informações de '{name}' atualizadas com sucesso!")
                     st.rerun()
 
