@@ -69,6 +69,22 @@ def create_tables(conn):
         weight_kg REAL,
         height_cm REAL,
         body_fat_percentage REAL,
+        -- Dobras Cutâneas (mm)
+        skinfold_triceps_mm REAL,
+        skinfold_subscapular_mm REAL,
+        skinfold_biceps_mm REAL,
+        skinfold_chest_mm REAL,
+        skinfold_midaxillary_mm REAL,
+        skinfold_suprailiac_mm REAL,
+        skinfold_abdominal_mm REAL,
+        skinfold_thigh_mm REAL,
+        skinfold_medial_calf_mm REAL,
+        -- Circunferências (cm)
+        circ_arm_cm REAL,
+        circ_waist_cm REAL,
+        circ_abdominal_cm REAL,
+        circ_hip_cm REAL,
+        circ_thigh_cm REAL,
         notes TEXT,
         FOREIGN KEY (patient_id) REFERENCES {PATIENTS_TABLE_NAME} (id)
     );
