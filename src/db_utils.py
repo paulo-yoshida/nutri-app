@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import pandas as pd
 
 DATABASE_FILE = os.path.join('database', 'nutri.db')
 
@@ -13,9 +14,10 @@ def get_db_connection():
 def get_patient_list():
     """Busca uma lista de todos os pacientes (id e nome)."""
     conn = get_db_connection()
-    patients = conn.execute("SELECT id, name FROM patients ORDER BY name ASC").fetchall()
+    patients = pd.read_sql_query("SELECT id, name FROM patients ORDER BY name ASC", con=conn)
     conn.close()
     return patients
+    
 
 def add_patient(name, birth_date, contact, medical_history):
     """Adiciona um novo paciente ao banco de dados."""
@@ -30,7 +32,7 @@ def add_patient(name, birth_date, contact, medical_history):
 def get_patient_details(patient_id):
     """Busca todos os detalhes de um paciente específico pelo seu ID."""
     conn = get_db_connection()
-    patient = conn.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    patient = pd.read_sql_query("SELECT * FROM patients WHERE id = ?", params=(patient_id,),con=conn)
     conn.close()
     return patient
 
@@ -53,5 +55,36 @@ def delete_patient(patient_id):
     conn = get_db_connection()
     # Futuramente, considere também excluir consultas associadas
     conn.execute("DELETE FROM patients WHERE id = ?", (patient_id,))
+    conn.commit()
+    conn.close()
+
+def add_consultation(patient_id, consultation_date, weight_kg, height_cm, body_fat_percentage, notes):
+    """Adiciona um novo registro de consulta para um paciente."""
+    conn = get_db_connection()
+    conn.execute(
+        """
+        INSERT INTO consultations (patient_id, consultation_date, weight_kg, height_cm, body_fat_percentage, notes)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (patient_id, consultation_date, weight_kg, height_cm, body_fat_percentage, notes)
+    )
+    conn.commit()
+    conn.close()
+
+def get_consultations_for_patient(patient_id):
+    """Busca todos os registros de consulta para um paciente, ordenados por data decrescente."""
+    conn = get_db_connection()
+    consultations = pd.read_sql_query(
+        "SELECT * FROM consultations WHERE patient_id = ? ORDER BY consultation_date DESC",
+        params=(patient_id,),
+        con=conn
+    )
+    conn.close()
+    return consultations
+
+def delete_consultation(consultation_id):
+    """Exclui um registro de consulta específico."""
+    conn = get_db_connection()
+    conn.execute("DELETE FROM consultations WHERE id = ?", (consultation_id,))
     conn.commit()
     conn.close()
