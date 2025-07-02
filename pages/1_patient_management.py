@@ -2,6 +2,11 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from src import db_utils  # Importa nossas funções do banco de dados
+from src import calculations
+
+# --- CONFIGURAÇÕES ---
+if 'bf_result' not in st.session_state:
+    st.session_state.bf_result = 0.0
 
 st.set_page_config(page_title="Gestão de Pacientes", page_icon="👥")
 
@@ -85,15 +90,99 @@ else: # Se um paciente existente foi selecionado
 
     # Formulário para adicionar nova consulta
     with st.expander("➕ Registrar Nova Consulta"):
-        with st.form("new_consultation_form", clear_on_submit=True):
+        with st.form("new_consultation_form", clear_on_submit=False):
+
             consultation_date = st.date_input("Data da Consulta", value=datetime.today())
             weight_kg = st.number_input("Peso (kg)", min_value=0.0, step=0.1, format="%.1f")
             height_cm = st.number_input("Altura (cm)", min_value=0.0, step=0.1, format="%.1f")
-            body_fat_percentage = st.number_input("Percentual de Gordura (%)", min_value=0.0, max_value=100.0, step=0.1, format="%.1f")
+            # body_fat_percentage = st.number_input("Percentual de Gordura (%)", min_value=0.0, max_value=100.0, step=0.1, format="%.1f")
+
+            # Inputs para dobras cutâneas
+            st.subheader("Dobras Cutâneas (mm)")
+            c1, c2, c3 = st.columns(3)
+            skinfolds = {
+                'triceps': c1.number_input("Tríceps", min_value=0.0, format="%.1f", key="sk_triceps"),
+                'subscapular': c2.number_input("Subescapular", min_value=0.0, format="%.1f", key="sk_subscapular"),
+                'biceps': c3.number_input("Bíceps", min_value=0.0, format="%.1f", key="sk_biceps"),
+                'chest': c1.number_input("Peitoral", min_value=0.0, format="%.1f", key="sk_chest"),
+                'midaxillary': c2.number_input("Axilar Média", min_value=0.0, format="%.1f", key="sk_midaxillary"),
+                'suprailiac': c3.number_input("Supra-ilíaca", min_value=0.0, format="%.1f", key="sk_suprailiac"),
+                'abdominal': c1.number_input("Abdominal", min_value=0.0, format="%.1f", key="sk_abdominal"),
+                'thigh': c2.number_input("Coxa", min_value=0.0, format="%.1f", key="sk_thigh"),
+                'medial_calf': c3.number_input("Panturrilha", min_value=0.0, format="%.1f", key="sk_medial_calf")
+            }
+
+            # Inputs para circunferências
+            st.subheader("Circunferências (cm)")
+            c1, c2, c3 = st.columns(3)
+            circuns = {
+                'circ_arm': c1.number_input("Circ. Braço", min_value=0.0, format="%.1f"),
+                'circ_waist': c2.number_input("Circ. Cintura", min_value=0.0, format="%.1f"),
+                'circ_abdominal': c3.number_input("Circ. Abdominal", min_value=0.0, format="%.1f"),
+                'circ_hip': c1.number_input("Circ. Quadril", min_value=0.0, format="%.1f"),
+                'circ_thigh': c2.number_input("Circ. Coxa", min_value=0.0, format="%.1f"),
+            }
+
+            # Seleção de protocolo e cálculo
+            st.subheader("Cálculo de % de Gordura")
+            protocol = st.selectbox(
+                "Selecione o Protocolo",
+                ['Nenhum', 'Pollock 7 dobras', 'Pollock 3 dobras', 'Durnin & Womersley 4 dobras'],
+                key="protocol_select"
+            )
+
+            # Se o cálculo falhar ou não for feito, permite entrada manual
+            body_fat_percentage = st.number_input(
+                "Percentual de Gordura (%) para Salvar",
+                min_value=0.0, max_value=100.0, step=0.1, format="%.1f",
+                value=st.session_state.bf_result # O valor padrão é o resultado do cálculo
+            )
+
+            st.divider()
             notes = st.text_area("Anotações da Consulta (dificuldades, sucessos, observações)")
+
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                calculate_button = st.form_submit_button("Calcular % Gordura")
+            with col_btn2:
+                save_button = st.form_submit_button("✅ Salvar Consulta", type="primary")
+
+
+            # --- BOTÃO DE CÁLCULO E LÓGICA ---
+            # Este botão aciona o cálculo e armazena o resultado no session_state
+            if calculate_button:
+                # Coleta os valores dos widgets através de suas chaves
+                skinfolds_values = {
+                    'triceps': st.session_state.sk_triceps, 'subscapular': st.session_state.sk_subscapular,
+                    'biceps': st.session_state.sk_biceps, 'chest': st.session_state.sk_chest,
+                    'midaxillary': st.session_state.sk_midaxillary, 'suprailiac': st.session_state.sk_suprailiac,
+                    'abdominal': st.session_state.sk_abdominal, 'thigh': st.session_state.sk_thigh
+                }
+                print(skinfolds_values)
             
-            submitted_consultation = st.form_submit_button("Salvar Consulta")
-            if submitted_consultation:
+                # Executa o cálculo
+                if protocol != 'Nenhum':
+                    result = calculations.calculate_body_fat(
+                        st.session_state.protocol_select,
+                        patient_details['birth_date'],
+                        patient_details['sex'],
+                        skinfolds_values
+                    )
+                    print(result)
+                    # Armazena o resultado
+                    st.session_state.bf_result = round(result, 2) if result is not None else 0.0
+                calculate_button = None # Reseta o estado do botão de cálculo
+
+            
+
+
+            # --- CAMPO DE RESULTADO ---
+            # Exibe o resultado que está armazenado no session_state
+            if st.session_state.bf_result > 0:
+                st.success(f"Percentual de Gordura Calculado: {st.session_state.bf_result}%")
+
+        
+            if save_button:
                 db_utils.add_consultation(patient_id, consultation_date.strftime("%Y-%m-%d"), weight_kg, height_cm, body_fat_percentage, notes)
                 st.success("Nova consulta registrada com sucesso!")
                 st.rerun()
